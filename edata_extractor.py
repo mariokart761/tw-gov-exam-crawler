@@ -63,17 +63,19 @@ class PDFQuestionParser:
             converted_lines.append(line)
 
         text_content = "".join(converted_lines)
-        self.clean_text_content(text_content)
-        self.extract_groups(text_content)
-        self.extract_questions(text_content)
+        fixed_content = self.clean_text_content(text_content)
+        self.extract_groups(fixed_content)
+        self.extract_questions(fixed_content)
 
-    def clean_text_content(self, text_content: str) -> None:
+    def clean_text_content(self, text_content: str) -> str:
         """
         解決出現以下字串的情況，各字元間允許空格
             代號：50140｜51140頁次：4－2
             代號：30160-30660、30860頁次：4－3
             代號：50130-5063050830-5123051430-51530頁次：4－2
             代 號：50140｜51140頁次：4－2
+            代號：50130｜51130頁次：4－2
+            代號：2501頁次：4－2"
         """
         sub_contents = [
             r'代號：\d+頁次：\d+－\d+',
@@ -82,8 +84,8 @@ class PDFQuestionParser:
             r'代\s*號\s*：\s*\d+\s*｜\s*\d+\s*頁\s*次\s*：\s*\d+\s*－\s*\d+',
         ]
         for sub_content in sub_contents:
-            text_content = re.sub(sub_content, '', text_content)
-        return text_content
+            fixed_content = re.sub(sub_content, '', text_content)
+        return fixed_content
 
     def extract_groups(self, text_content: str) -> None:
         for pattern in self.qgroup_patterns:
@@ -126,7 +128,7 @@ class PDFQuestionParser:
         # （15 分）這類keyword用來篩選掉申論題
         # "依此回答下"、"回答第"、"依下文" 用來篩選可能沒篩乾淨的題組
         keywords = [
-            "頁次", "題組", "依此回答下", "回答第", "依下文",
+            "頁次", "題組", "代號", "依此回答下", "回答第", "依下文",
             "（50分）", "（25 分）", "（15 分）"
         ]
         question['flag'] = "讚"  # 默認為讚
