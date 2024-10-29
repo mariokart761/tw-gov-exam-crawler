@@ -12,9 +12,8 @@ class PDFAnswerExtractor:
             for page in pdf.pages:
                 text += page.extract_text()
 
-        # 提取題號和答案
-        # 更正答案中，答案可能會有"#"字元
-        pattern = re.compile(r'題號\s*(\d+(?:\s*\d+)*)\s*答案\s*([A-Z\s#]+)')
+        # 更新提取題號和答案的正則表達式
+        pattern = re.compile(r'題號\s*(第?\d+題?(?:\s*第?\d+題?)*)\s*答案\s*([A-Z\s#]*)')
         matches = pattern.findall(text)
 
         # 儲存結果的列表
@@ -23,9 +22,13 @@ class PDFAnswerExtractor:
         # 處理每一題
         for match in matches:
             question_numbers = match[0].split()
-            answers = match[1].split()
-            for q_num, answer in zip(question_numbers, answers):
-                result.append({"題號": int(q_num), "答案": answer.strip()})
+            answers = match[1].strip().split() if match[1].strip() else []
+            for q_num in question_numbers:
+                if answers:
+                    answer = answers.pop(0)  # 取出第一個答案
+                else:
+                    answer = None  # 如果沒有答案
+                result.append({"題號": int(re.sub(r'第|題', '', q_num)), "答案": answer})
 
         return result
 
@@ -33,7 +36,7 @@ class PDFAnswerExtractor:
         return self.result
 
 # if __name__ == "__main__":
-#     file_path = './101年考選部考古題/三等移民行政特考_移民行政(選試俄文）/國際公法與移民政策（包括移民人權）/101年_三等移民行政特考_移民行政(選試俄文）_國際公法與移民政策（包括移民人權）_更正答案.pdf'
+#     file_path = './102年考選部考古題/三等考試_農業行政/法學知識與英文（包括中華民國憲法、法學緒論、英文）/102年_三等考試_農業行政_法學知識與英文（包括中華民國憲法、法學緒論、英文）_更正答案.pdf'
 #     extractor = PDFAnswerExtractor(file_path)
 #     results = extractor.get_results()
 #     print(results)
