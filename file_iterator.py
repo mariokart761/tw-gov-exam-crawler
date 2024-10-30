@@ -40,7 +40,20 @@ def classify_files(folder_path):
         print(f"發生錯誤: {e}")
         return {}    
 if __name__ == "__main__":
-    exam_years = [101,102,103,104,105,106,107,108,109,110,111,112]
+    exam_years = [
+        # 101,
+        # 102,
+        # 103,
+        # 104,
+        # 105,
+        # 106,
+        # 107,
+        # 108,
+        # 109,
+        # 110,
+        # 111,
+        112
+        ]
     for exam_year in exam_years:
         考試年份 = exam_year
         lv1_folder = f'./{考試年份}年考選部考古題'  #考試年份
@@ -75,5 +88,5 @@ if __name__ == "__main__":
                 data.append(考試資料)
 
         # 存為json
-        with open(f'{考試年份}_考古題.json', 'w', encoding='utf-8') as json_file:
+        with open(f'./考選部考古題json/{考試年份}_考古題.json', 'w', encoding='utf-8') as json_file:
             json.dump(data, json_file, ensure_ascii=False, indent=4) 

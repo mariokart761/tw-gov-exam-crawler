@@ -1,6 +1,7 @@
 import pdfplumber
 import re
 from typing import List, Dict, Optional
+from termcolor import colored
 
 class PDFQuestionParser:
     """
@@ -16,8 +17,9 @@ class PDFQuestionParser:
         若答案不明確(可能更正答案中有多個答案)，會標記成"蛋雕 (有不明確的更正答案)"
     """
     
-    def __init__(self, filename: str):
+    def __init__(self, filename: str, debug_mode:bool = False):
         self.filename = filename
+        self.debug_mode=debug_mode
         self.questions: List[Dict[str, Optional[str]]] = []
         self.group_ranges: List[Dict[str, int]] = []
         self.text_content: str = ""
@@ -67,8 +69,8 @@ class PDFQuestionParser:
             for char, letter in self.conversion_dict.items():
                 line = line.replace(char, letter)
             
-            # 檢查該行第一組字串是否為數字(題號)，以及是否有 "."字元(會無法強制轉型int，且不可能為題號)
-            if line and line.split(' ', 1)[0].isdigit() and ("." not in line.split(' ', 1)[0]):
+            # 檢查該行第一組字串是否為數字(題號)，以及確定是否只包含10進制數字(否則會讓'①②④'通過)
+            if line and line.split(' ', 1)[0].isdigit() and line.split(' ', 1)[0].isdecimal():
                 if int(line.split(' ', 1)[0]) == question_counter:
                     question_counter += 1
                     parts = line.split(' ', 1)
@@ -91,6 +93,8 @@ class PDFQuestionParser:
             代號：50130-5063050830-5123051430-51530頁次：4－2
             代 號：50140｜51140頁次：4－2
             代號：43150|44150頁次：4－2
+            代號：30150-3085031050、3115031650、3195032050、3275032850頁次：4－4
+            代號： 23012701頁 次： 4－3
         """
         sub_contents = [
             r'代號：\d+｜?頁次：\d+－\d+',
@@ -98,9 +102,12 @@ class PDFQuestionParser:
             r'代號：\d+-\d+-\d+-\d+頁次：\d+－\d',
             r'代\s*號\s*：\s*\d+\s*｜\s*\d+\s*頁\s*次\s*：\s*\d+\s*－\s*\d+',
             r'代號：\d+\|?\d+頁次：\d+－\d+',
+            # r'代[\s]*號[\s]*：(?:\d+(?:[-｜、,－|]\d+)*)[\s]*頁[\s]*次[\s]*：\d+－\d+',
         ]
         for sub_content in sub_contents:
             self.text_content = re.sub(sub_content, '', self.text_content)
+
+        if self.debug_mode:print(colored("text_content: \n"+str(self.text_content),'green'))
         # return fixed_content
 
     def extract_groups(self) -> None:
@@ -112,6 +119,7 @@ class PDFQuestionParser:
                     "結束題": int(match[1]),
                     "描述": match[2].strip()
                 })
+        if self.debug_mode:print(colored("group_ranges: \n"+str(self.group_ranges),'blue'))
 
     def extract_questions(self) -> None:
         pattern = re.compile(
@@ -119,7 +127,7 @@ class PDFQuestionParser:
             re.DOTALL
         )
         matches = pattern.findall(self.text_content)
-        
+        if self.debug_mode:print(colored("matches: \n"+str(matches),'yellow'))
         for match in matches:
             question = {
                 "題號": int(match[0]),
@@ -139,6 +147,8 @@ class PDFQuestionParser:
                     
             self.keyword_filter(question)
             self.questions.append(question)
+        
+        if self.debug_mode:print(colored("questions: \n"+str(self.questions),'light_cyan'))
 
     
     def find_abandon_qgroup(self):
@@ -185,13 +195,15 @@ class PDFQuestionParser:
 
 # if __name__ == "__main__":
 #     from adata_extractor import PDFAnswerExtractor
-#     年度 = 102
-#     考試名稱 = "三等考試_農業行政"
-#     考試科目 = "法學知識與英文（包括中華民國憲法、法學緒論、英文）"
+#     年度 = 112
+#     ## bug case : 因pdfplumber無法識別選項字元，無法提取試題
+#     考試名稱 = "一般警察人員考試三等考試_消防警察人員"
+#     考試科目 = "法學知識與英文(中華民國憲法、法學緒論、英文)"
+#     ## 正常case
+#     # 考試名稱= "一般警察人員考試四等考試_水上警察人員航海組"
+#     # 考試科目= "法學知識(中華民國憲法概要、法學緒論)"
 #     file_path = f'./{年度}年考選部考古題/{考試名稱}/{考試科目}/{年度}年_{考試名稱}_{考試科目}'
-#     q_parser = PDFQuestionParser(f'{file_path}_試題.pdf')
+#     q_parser = PDFQuestionParser(f'{file_path}_試題.pdf', debug_mode = True)
 #     ans = PDFAnswerExtractor(f'{file_path}_答案.pdf').get_results()
 #     q_parser.integrate_answers(ans)
 #     q_data = q_parser.get_questions()
-#     for q in q_data:
-#         print(q)
