@@ -67,8 +67,8 @@ class PDFQuestionParser:
             for char, letter in self.conversion_dict.items():
                 line = line.replace(char, letter)
             
-            # 檢查該行第一組字串是否為數字(題號)，以及是否有 "."字元(會無法強制轉型int，且不可能為題號)
-            if line and line.split(' ', 1)[0].isdigit() and ("." not in line.split(' ', 1)[0]):
+            # 檢查該行第一組字串是否為數字(題號)，以及確定是否只包含10進制數字(否則會讓'①②④'通過)
+            if line and line.split(' ', 1)[0].isdigit() and line.split(' ', 1)[0].isdecimal():
                 if int(line.split(' ', 1)[0]) == question_counter:
                     question_counter += 1
                     parts = line.split(' ', 1)
@@ -91,13 +91,15 @@ class PDFQuestionParser:
             代號：50130-5063050830-5123051430-51530頁次：4－2
             代 號：50140｜51140頁次：4－2
             代號：43150|44150頁次：4－2
+            代號：30150-3085031050、3115031650、3195032050、3275032850頁次：4－4
         """
         sub_contents = [
-            r'代號：\d+｜?頁次：\d+－\d+',
-            r'代號：\d+-\d+、?-?\d+頁次：\d+－\d',
-            r'代號：\d+-\d+-\d+-\d+頁次：\d+－\d',
-            r'代\s*號\s*：\s*\d+\s*｜\s*\d+\s*頁\s*次\s*：\s*\d+\s*－\s*\d+',
-            r'代號：\d+\|?\d+頁次：\d+－\d+',
+            # r'代號：\d+｜?頁次：\d+－\d+',
+            # r'代號：\d+-\d+、?-?\d+頁次：\d+－\d',
+            # r'代號：\d+-\d+-\d+-\d+頁次：\d+－\d',
+            # r'代\s*號\s*：\s*\d+\s*｜\s*\d+\s*頁\s*次\s*：\s*\d+\s*－\s*\d+',
+            # r'代號：\d+\|?\d+頁次：\d+－\d+',
+            r'代[\s]*號[\s]*：(?:\d+(?:[-｜、,－|]\d+)*)[\s]*頁[\s]*次[\s]*：\d+－\d+',
         ]
         for sub_content in sub_contents:
             self.text_content = re.sub(sub_content, '', self.text_content)
