@@ -44,6 +44,9 @@ __pycache__
 
 考選部考古題.7z
 資料筆數.txt
+config.conf
+
 t.py
 t2.py
 test.py
+json2mongoDB.py
