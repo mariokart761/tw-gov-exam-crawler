@@ -1,76 +1,73 @@
-from sqlmodel import SQLModel, Field, Relationship, create_engine, Session
-from typing import Optional, List
-import json
 import configparser
+import json
+from sqlmodel import SQLModel, Field, Session, create_engine, text
+from typing import List, Optional
+from tqdm import tqdm
 
-class Exam(SQLModel, table=True):
+# 定義數據模型
+class ExamQuestion(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    year: int = Field(index=True, alias="考試年份")
-    name: str = Field(alias="考試名稱")
-    subject: str = Field(alias="考試科目")
-    questions: List["Question"] = Relationship(back_populates="exam")
-
-class Question(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    exam_id: int = Field(foreign_key="exam.id")
-    number: int = Field(alias="題號")
+    exam_year: int = Field(alias="考試年份")
+    exam_name: str = Field(alias="考試名稱")
+    exam_subject: str = Field(alias="考試科目")
+    question_number: int = Field(alias="題號")
     question_text: str = Field(alias="題目")
     option_a: str = Field(alias="A")
     option_b: str = Field(alias="B")
     option_c: str = Field(alias="C")
     option_d: str = Field(alias="D")
-    flag: Optional[str]
-    answer: str = Field(alias="答案")
-    question_group: Optional[str] = Field(alias="題組")
+    question_group: Optional[str] = Field(default=None, alias="題組")  # 將題組設為可選的字符串類型
+    flag: str
+    answer: str 
 
-    exam: Optional[Exam] = Relationship(back_populates="questions")
-
-# 建立資料庫連線
+# 讀取配置檔案中的資料庫 URL
 config = configparser.ConfigParser()
 config.read('config.conf')
-# 格式範例 postgresql://username:password@localhost:5432/mydatabase
 DATABASE_URL = config['database']['url']
 engine = create_engine(DATABASE_URL)
 
-# 建立資料表
-def create_db_and_tables():
-    SQLModel.metadata.create_all(engine)
+# 建立資料庫表格
+SQLModel.metadata.create_all(engine)
 
+# 讀取 JSON 檔案
+with open('./考選部考古題json/101_考古題.json', encoding='utf-8') as f:
+    data = json.load(f)
 
-def load_json_to_db(file_path: str):
-    with open(file_path, 'r', encoding='utf-8') as f:
-        data = json.load(f)
-
-    with Session(engine) as session:
-        for exam_data in data:
-            exam = Exam(
-                year=exam_data["考試年份"],
-                name=exam_data["考試名稱"],
-                subject=exam_data["考試科目"]
+# 解析 JSON 資料並插入資料庫
+with Session(engine) as db:
+    for exam in tqdm(data, desc='Building database', unit="its"):
+        exam_year = exam["考試年份"]
+        exam_name = exam["考試名稱"]
+        exam_subject = exam["考試科目"]
+        
+        for question in exam["考卷內容"]:
+            # 將題組（question_group）轉換為 JSON 字符串格式，若為空則保留 None
+            question_group = json.dumps(question["題組"]) if question["題組"] else None
+            
+            question_data = ExamQuestion(
+                exam_year=exam_year,
+                exam_name=exam_name,
+                exam_subject=exam_subject,
+                question_number=question["題號"],
+                question_text=question["題目"],
+                option_a=question["A"],
+                option_b=question["B"],
+                option_c=question["C"],
+                option_d=question["D"],
+                question_group=question_group,
+                flag=question["flag"],
+                answer=question["答案"]
             )
-            session.add(exam)
-            session.commit()  # 確保考試資料插入後，才能建立外鍵連結
+            db.add(question_data)
+    
+    db.commit()  # 提交事務以插入資料
 
-            for question_data in exam_data["考卷內容"]:
-                question = Question(
-                    exam_id=exam.id,
-                    number=question_data["題號"],
-                    question_text=question_data["題目"],
-                    option_a=question_data["A"],
-                    option_b=question_data["B"],
-                    option_c=question_data["C"],
-                    option_d=question_data["D"],
-                    flag=question_data.get("flag"),
-                    answer=question_data["答案"],
-                    question_group=question_data.get("題組")
-                )
-                session.add(question)
+# 驗證插入是否成功的範例查詢
+# with Session(engine) as db:
+#     result = db.exec(text("SELECT * FROM examquestion"))
+#     for row in result:
+#         print(row)
 
-        session.commit()
-
-
-if __name__ == "__main__":
-    # 建立資料庫表
-    create_db_and_tables()
-    # 載入 JSON 資料
-    load_json_to_db("path_to_your_json_file.json")
+with Session(engine) as db:
+    db_name = db.exec(text("SELECT current_database();")).one()
+    print("Connected to database:", db_name)
