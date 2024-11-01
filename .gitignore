@@ -1,5 +1,6 @@
 __pycache__
 
+考選部考古題pdf
 101年考選部考古題
 102年考選部考古題
 103年考選部考古題
@@ -44,7 +45,9 @@ __pycache__
 
 考選部考古題.7z
 資料筆數.txt
+
 config.conf
+docker-compose.yml
 
 t.py
 t2.py
