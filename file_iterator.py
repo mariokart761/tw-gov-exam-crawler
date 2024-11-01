@@ -41,22 +41,22 @@ def classify_files(folder_path):
         return {}    
 if __name__ == "__main__":
     exam_years = [
-        # 101,
-        # 102,
-        # 103,
-        # 104,
-        # 105,
-        # 106,
-        # 107,
-        # 108,
-        # 109,
-        # 110,
-        # 111,
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109,
+        110,
+        111,
         112
         ]
     for exam_year in exam_years:
         考試年份 = exam_year
-        lv1_folder = f'./{考試年份}年考選部考古題'  #考試年份
+        lv1_folder = f'./考選部考古題pdf/{考試年份}年考選部考古題'  #考試年份
         lv2_folder = list_directories(lv1_folder)  #考試名稱:list
         data=[]
         for 考試名稱 in tqdm(lv2_folder, desc='Parsing PDF content', unit="its"):

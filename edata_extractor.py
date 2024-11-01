@@ -13,7 +13,7 @@ class PDFQuestionParser:
         
     並記額外紀錄
         每一題的flag資訊，若該題的題目或選項中帶有指定字串，則將該題的flag標記為"蛋雕"，否則標記為"讚"
-        若為題組，則該題資料中會有"題組題的起始題、結束題、描述"，否則為None
+        若為題組，則該題資料中會有"題組題的start_ques、end_ques、ques_desc"，否則為None
         若答案不明確(可能更正答案中有多個答案)，會標記成"蛋雕 (有不明確的更正答案)"
     """
     
@@ -115,9 +115,9 @@ class PDFQuestionParser:
             group_matches = pattern.findall(self.text_content)
             for match in group_matches:
                 self.group_ranges.append({
-                    "起始題": int(match[0]),
-                    "結束題": int(match[1]),
-                    "描述": match[2].strip()
+                    "start_ques": int(match[0]),
+                    "end_ques": int(match[1]),
+                    "ques_desc": match[2].strip()
                 })
         if self.debug_mode:print(colored("group_ranges: \n"+str(self.group_ranges),'blue'))
 
@@ -137,7 +137,7 @@ class PDFQuestionParser:
                 "C": match[7].strip(),
                 "D": match[9].strip(),
                 "題組": next(
-                    (group for group in self.group_ranges if group["起始題"] <= int(match[0]) <= group["結束題"]),
+                    (group for group in self.group_ranges if group["start_ques"] <= int(match[0]) <= group["end_ques"]),
                     None
                 )
             }
@@ -160,8 +160,8 @@ class PDFQuestionParser:
             group_matches = pattern.findall(self.text_content)
             for match in group_matches:
                 self.abandon_group.append({
-                    "起始題": int(match[0]),
-                    "結束題": int(match[1]),
+                    "start_ques": int(match[0]),
+                    "end_ques": int(match[1]),
                 })
     
     def keyword_filter(self, question: Dict[str, str]) -> None:
@@ -179,7 +179,7 @@ class PDFQuestionParser:
         
         # 處理必須拋棄的題組
         for group in self.abandon_group:
-            for 題號 in range(group["起始題"],group["結束題"]+1):
+            for 題號 in range(group["start_ques"],group["end_ques"]+1):
                 if question["題號"]==題號: question['flag'] = "蛋雕 (有必須遺棄的題組)"
 
     def integrate_answers(self, answers: List[Dict[str, str]]) -> None:
@@ -197,12 +197,12 @@ class PDFQuestionParser:
 #     from adata_extractor import PDFAnswerExtractor
 #     年度 = 112
 #     ## bug case : 因pdfplumber無法識別選項字元，無法提取試題
-#     考試名稱 = "一般警察人員考試三等考試_消防警察人員"
-#     考試科目 = "法學知識與英文(中華民國憲法、法學緒論、英文)"
+#     # 考試名稱 = "一般警察人員考試三等考試_消防警察人員"
+#     # 考試科目 = "法學知識與英文(中華民國憲法、法學緒論、英文)"
 #     ## 正常case
-#     # 考試名稱= "一般警察人員考試四等考試_水上警察人員航海組"
-#     # 考試科目= "法學知識(中華民國憲法概要、法學緒論)"
-#     file_path = f'./{年度}年考選部考古題/{考試名稱}/{考試科目}/{年度}年_{考試名稱}_{考試科目}'
+#     考試名稱= "一般警察人員考試四等考試_水上警察人員航海組"
+#     考試科目= "法學知識(中華民國憲法概要、法學緒論)"
+#     file_path = f'./考選部考古題pdf/{年度}年考選部考古題/{考試名稱}/{考試科目}/{年度}年_{考試名稱}_{考試科目}'
 #     q_parser = PDFQuestionParser(f'{file_path}_試題.pdf', debug_mode = True)
 #     ans = PDFAnswerExtractor(f'{file_path}_答案.pdf').get_results()
 #     q_parser.integrate_answers(ans)
