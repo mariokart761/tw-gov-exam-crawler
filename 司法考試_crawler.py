@@ -73,7 +73,7 @@ for year in year_list:
         exam_data.append(exam_info)
 
     ## 下載考古題
-    base_dir = f'./{exam_year}年考選部考古題'
+    base_dir = f'./考選部考古題pdf/{exam_year}年考選部考古題'
     os.makedirs(base_dir, exist_ok=True)
     for exam in tqdm(exam_data, desc="Downloading exam data", unit="its"):
         考試名稱 = exam['考試名稱']
